@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(zsh -n ~/.zshrc)",
+      "Bash(/bin/zsh -c 'source ~/.zshrc && which code')",
+      "Bash(/bin/zsh:*)",
+      "Bash(mkdir:*)",
+      "Bash(python3:*)",
+      "WebSearch",
+      "Bash(pip3 install:*)",
+      "Bash(source venv/bin/activate)",
+      "Bash(pip install:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(curl:*)",
+      "Bash(chmod:*)",
+      "WebFetch(domain:blog.naver.com)",
+      "WebFetch(domain:m.blog.naver.com)",
+      "Bash(source:*)",
+      "Bash(ls:*)",
+      "Bash(python parse_pdf.py:*)",
+      "Bash(python add_coordinates.py:*)",
+      "Bash(python add_coordinates_kakao.py:*)",
+      "Bash(python:*)",
+      "Bash(git rm:*)",
+      "Bash(git add:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "postgresql"
+  ]
+}
