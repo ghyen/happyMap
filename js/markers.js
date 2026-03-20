@@ -40,8 +40,7 @@ const MarkerModule = (function() {
             <div class="unit-item" data-id="${property.id}" data-unit="${property.unit}">
                 <div class="unit-header">
                     <span class="unit-number">${property.unit}호</span>
-                    <span class="unit-type">${property.structure || ''}</span>
-                    ${property.gender ? `<span class="unit-gender">${property.gender}</span>` : ''}
+                    <span class="unit-type">방${property.rooms || '?'}개</span>
                 </div>
                 <div class="unit-details">
                     <span>${property.exclusiveArea}㎡</span>
@@ -69,7 +68,11 @@ const MarkerModule = (function() {
                 <div class="info-header">
                     <div class="title">${firstProp.propertyId}</div>
                     <div class="address">${address}</div>
-                    <div class="unit-count">${properties.length}개 호실</div>
+                    <div class="info-meta">
+                        <span>${properties.length}개 호실</span>
+                        <span>승강기 ${firstProp.elevator ? 'O' : 'X'}</span>
+                        ${firstProp.commuteMin != null ? `<span>🚗${firstProp.commuteMin}분</span>` : ''}
+                    </div>
                 </div>
                 <div class="units-container">
                     ${unitsHtml}

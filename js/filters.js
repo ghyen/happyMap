@@ -20,22 +20,6 @@ const FilterModule = (function() {
     }
 
     /**
-     * 주택구조 목록 추출
-     */
-    function getStructures() {
-        const structures = [...new Set(allProperties.map(p => p.structure).filter(Boolean))];
-        return structures.sort();
-    }
-
-    /**
-     * 성별 목록 추출
-     */
-    function getGenders() {
-        const genders = [...new Set(allProperties.map(p => p.gender).filter(Boolean))];
-        return genders.sort();
-    }
-
-    /**
      * 자치구 필터 옵션 초기화
      */
     function initDistrictFilter() {
@@ -51,33 +35,6 @@ const FilterModule = (function() {
     }
 
     /**
-     * 주택구조 필터 옵션 초기화
-     */
-    function initStructureFilter() {
-        const select = document.getElementById('structure-filter');
-        if (!select) return;
-
-        const structures = getStructures();
-
-        structures.forEach(structure => {
-            const option = document.createElement('option');
-            option.value = structure;
-            option.textContent = structure;
-            select.appendChild(option);
-        });
-    }
-
-    /**
-     * 성별 필터 옵션 초기화
-     */
-    function initGenderFilter() {
-        const select = document.getElementById('gender-filter');
-        if (!select) return;
-
-        // 이미 HTML에 옵션이 있으므로 추가 초기화 불필요
-    }
-
-    /**
      * 현재 필터 값 가져오기
      */
     function getFilterValues() {
@@ -89,9 +46,9 @@ const FilterModule = (function() {
             depositMax: parseFloat(document.getElementById('deposit-max').value) * 10000 || null,
             rentMin: parseFloat(document.getElementById('rent-min').value) * 10000 || null,
             rentMax: parseFloat(document.getElementById('rent-max').value) * 10000 || null,
-            structure: document.getElementById('structure-filter')?.value || '',
-            gender: document.getElementById('gender-filter')?.value || '',
-            supplyType: document.getElementById('supply-type-filter')?.value || ''
+            rooms: document.getElementById('rooms-filter')?.value || '',
+            elevator: document.getElementById('elevator-filter')?.value || '',
+            commuteMax: parseInt(document.getElementById('commute-max')?.value) || null
         };
     }
 
@@ -131,28 +88,21 @@ const FilterModule = (function() {
                 return false;
             }
 
-            // 주택구조 필터
-            if (filters.structure && property.structure !== filters.structure) {
+            // 방개수 필터
+            if (filters.rooms && property.rooms !== parseInt(filters.rooms)) {
                 return false;
             }
 
-            // 성별 필터
-            if (filters.gender) {
-                if (filters.gender === '무관') {
-                    // 성별 제한이 없는 매물만 표시
-                    if (property.gender && property.gender !== '') {
-                        return false;
-                    }
-                } else {
-                    // 특정 성별 또는 성별 무관인 매물
-                    if (property.gender && property.gender !== filters.gender) {
-                        return false;
-                    }
+            // 승강기 필터
+            if (filters.elevator !== '') {
+                const wantElevator = filters.elevator === 'true';
+                if (property.elevator !== wantElevator) {
+                    return false;
                 }
             }
 
-            // 공급유형 필터
-            if (filters.supplyType && property.supplyType !== filters.supplyType) {
+            // 소요시간 필터
+            if (filters.commuteMax && property.commuteMin > filters.commuteMax) {
                 return false;
             }
 
@@ -172,24 +122,20 @@ const FilterModule = (function() {
         document.getElementById('rent-min').value = '';
         document.getElementById('rent-max').value = '';
 
-        const structureFilter = document.getElementById('structure-filter');
-        if (structureFilter) structureFilter.value = '';
+        const roomsFilter = document.getElementById('rooms-filter');
+        if (roomsFilter) roomsFilter.value = '';
 
-        const genderFilter = document.getElementById('gender-filter');
-        if (genderFilter) genderFilter.value = '';
+        const elevatorFilter = document.getElementById('elevator-filter');
+        if (elevatorFilter) elevatorFilter.value = '';
 
-        const supplyTypeFilter = document.getElementById('supply-type-filter');
-        if (supplyTypeFilter) supplyTypeFilter.value = '';
+        const commuteMax = document.getElementById('commute-max');
+        if (commuteMax) commuteMax.value = '';
     }
 
     return {
         setProperties,
         getDistricts,
-        getStructures,
-        getGenders,
         initDistrictFilter,
-        initStructureFilter,
-        initGenderFilter,
         getFilterValues,
         applyFilters,
         resetFilters

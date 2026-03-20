@@ -82,17 +82,32 @@ const MapModule = (function() {
     }
 
     /**
-     * InfoWindow 표시
+     * InfoWindow 표시 (CustomOverlay 사용 - 잘림 방지)
      */
     function showInfoWindow(marker, content) {
         closeInfoWindow();
 
-        currentInfoWindow = new kakao.maps.InfoWindow({
-            content: content,
-            removable: true
+        const position = marker.getPosition();
+        const wrapper = `<div class="custom-overlay-wrap">${content}<button class="overlay-close" onclick="MapModule.closeInfoWindow()">✕</button></div>`;
+
+        currentInfoWindow = new kakao.maps.CustomOverlay({
+            content: wrapper,
+            position: position,
+            yAnchor: 1.15,
+            zIndex: 3
         });
 
-        currentInfoWindow.open(map, marker);
+        currentInfoWindow.setMap(map);
+
+        // 오버레이 위에서 스크롤/드래그 시 지도 이벤트 방지
+        setTimeout(() => {
+            const el = document.querySelector('.custom-overlay-wrap');
+            if (el) {
+                ['wheel', 'mousedown', 'dblclick', 'touchstart'].forEach(evt => {
+                    el.addEventListener(evt, e => e.stopPropagation());
+                });
+            }
+        }, 0);
     }
 
     /**
@@ -100,7 +115,7 @@ const MapModule = (function() {
      */
     function closeInfoWindow() {
         if (currentInfoWindow) {
-            currentInfoWindow.close();
+            currentInfoWindow.setMap(null);
             currentInfoWindow = null;
         }
     }

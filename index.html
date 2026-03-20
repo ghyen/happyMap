@@ -8,11 +8,47 @@
 </head>
 <body>
     <div id="container">
+        <!-- 설정 패널 (접기/펼치기) -->
+        <aside id="settings-panel" class="collapsed">
+            <button id="settings-toggle">⚙</button>
+            <div class="settings-content">
+                <h2>설정</h2>
+
+                <div class="setting-group">
+                    <label>테마</label>
+                    <button id="theme-toggle" class="btn-theme">다크모드</button>
+                </div>
+
+                <div class="setting-group">
+                    <label for="dataset-select">데이터셋</label>
+                    <select id="dataset-select">
+                        <option value="data/properties.json">2026년 1차 장기미임대</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label for="office-address">회사 위치</label>
+                    <input type="text" id="office-address" placeholder="주소 입력">
+                    <button id="save-office" class="btn-primary">저장 &amp; 재계산</button>
+                    <div id="office-status" class="setting-status"></div>
+                </div>
+
+                <div class="settings-footer">
+                    <a href="https://github.com/ghyen/happyMap" target="_blank" class="footer-link">
+                        <span class="footer-icon">GitHub</span>
+                    </a>
+                    <a href="https://toss.me/ghyen" target="_blank" class="footer-link sponsor">
+                        <span class="footer-icon">후원하기</span>
+                    </a>
+                </div>
+            </div>
+        </aside>
+
         <!-- 사이드바 -->
         <aside id="sidebar">
             <header class="sidebar-header">
                 <h1>청년매입임대주택</h1>
-                <p class="subtitle">서울시 2025년 3차 청년안심주택</p>
+                <p class="subtitle" id="dataset-name">서울시 2026년 1차 장기미임대 매입임대주택</p>
             </header>
 
             <!-- 검색 섹션 -->
@@ -69,32 +105,35 @@
                     </div>
                 </div>
 
-                <!-- 주택구조 필터 -->
+                <!-- 방개수 필터 -->
                 <div class="filter-group">
-                    <label for="structure-filter">주택구조</label>
-                    <select id="structure-filter">
+                    <label for="rooms-filter">방개수</label>
+                    <select id="rooms-filter">
                         <option value="">전체</option>
+                        <option value="1">1개</option>
+                        <option value="2">2개</option>
+                        <option value="3">3개</option>
+                        <option value="4">4개</option>
                     </select>
                 </div>
 
-                <!-- 성별 필터 -->
+                <!-- 승강기 필터 -->
                 <div class="filter-group">
-                    <label for="gender-filter">성별</label>
-                    <select id="gender-filter">
+                    <label for="elevator-filter">승강기</label>
+                    <select id="elevator-filter">
                         <option value="">전체</option>
-                        <option value="남성">남성</option>
-                        <option value="여성">여성</option>
+                        <option value="true">있음</option>
+                        <option value="false">없음</option>
                     </select>
                 </div>
 
-                <!-- 공급유형 필터 -->
+                <!-- 소요시간 필터 -->
                 <div class="filter-group">
-                    <label for="supply-type-filter">공급유형</label>
-                    <select id="supply-type-filter">
-                        <option value="">전체</option>
-                        <option value="신규공급">신규공급</option>
-                        <option value="재공급">재공급</option>
-                    </select>
+                    <label>회사까지 소요시간 (분)</label>
+                    <div class="range-inputs">
+                        <input type="number" id="commute-max" placeholder="최대" min="0">
+                        <span>분 이내</span>
+                    </div>
                 </div>
 
                 <div class="filter-buttons">
@@ -134,6 +173,7 @@
     <script src="js/config.js"></script>
 
     <!-- 앱 스크립트 -->
+    <script src="js/settings.js"></script>
     <script src="js/map.js"></script>
     <script src="js/markers.js"></script>
     <script src="js/filters.js"></script>

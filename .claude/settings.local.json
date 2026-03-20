@@ -24,7 +24,13 @@
       "Bash(python add_coordinates_kakao.py:*)",
       "Bash(python:*)",
       "Bash(git rm:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit --amend -m \"$\\(cat <<''EOF''\ninital\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(file:*)",
+      "Bash(grep -v \"^$\")",
+      "Bash(git:*)",
+      "Bash(gh auth:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

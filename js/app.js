@@ -9,9 +9,9 @@ const App = (function() {
     /**
      * 데이터 로드
      */
-    async function loadData() {
+    async function loadData(path) {
         try {
-            const response = await fetch('data/properties.json');
+            const response = await fetch(path || SettingsModule.getDatasetPath());
             if (!response.ok) {
                 throw new Error('데이터를 불러올 수 없습니다.');
             }
@@ -54,24 +54,21 @@ const App = (function() {
                 li.classList.add('highlight');
             }
 
-            // 성별 표시
-            const genderBadge = property.gender ?
-                `<span class="gender-badge ${property.gender === '남성' ? 'male' : 'female'}">${property.gender}</span>` : '';
-
             li.innerHTML = `
                 <div class="property-header">
                     <div class="id">${property.propertyId}</div>
                     <span class="unit-badge">${property.unit}호</span>
-                    ${genderBadge}
                 </div>
                 <div class="address">${property.address}</div>
                 <div class="info">
                     <span class="area">${property.exclusiveArea}㎡</span>
-                    <span class="structure">${property.structure || ''}</span>
+                    <span class="rooms">방${property.rooms || '?'}개</span>
+                    <span class="elevator-badge ${property.elevator ? 'yes' : 'no'}">승강기 ${property.elevator ? 'O' : 'X'}</span>
                 </div>
                 <div class="price-info">
                     <span class="deposit">보증금 ${MarkerModule.formatPrice(property.deposit)}만</span>
                     <span class="rent">월 ${MarkerModule.formatPrice(property.monthlyRent)}만</span>
+                    ${property.commuteMin != null ? `<span class="commute">🚗 ${property.commuteMin}분</span>` : ''}
                 </div>
             `;
 
@@ -93,8 +90,7 @@ const App = (function() {
     /**
      * 검색어 매칭 확인
      */
-    function isSearchMatch(property, keyword) {
-        const lowerKeyword = keyword.toLowerCase();
+    function isSearchMatch(property, lowerKeyword) {
         return property.propertyId.toLowerCase().includes(lowerKeyword) ||
                property.address.toLowerCase().includes(lowerKeyword) ||
                property.district.toLowerCase().includes(lowerKeyword) ||
@@ -105,7 +101,7 @@ const App = (function() {
      * 검색 실행
      */
     function search(keyword) {
-        searchKeyword = keyword.trim();
+        searchKeyword = keyword.trim().toLowerCase();
 
         if (!searchKeyword) {
             updateView();
@@ -296,8 +292,6 @@ const App = (function() {
             // 필터 모듈에 데이터 설정
             FilterModule.setProperties(properties);
             FilterModule.initDistrictFilter();
-            FilterModule.initStructureFilter();
-            FilterModule.initGenderFilter();
             filteredProperties = properties;
 
             // 마커 생성 및 리스트 렌더링
@@ -312,6 +306,30 @@ const App = (function() {
             if (markers.length > 0) {
                 MapModule.fitBounds(markers);
             }
+
+            // 설정 패널 초기화
+            SettingsModule.init(
+                // 데이터셋 변경
+                async (path) => {
+                    showLoading(true);
+                    properties = await loadData(path);
+                    FilterModule.setProperties(properties);
+                    filteredProperties = properties;
+                    MarkerModule.createMarkers(properties);
+                    renderList(properties);
+                    const m = MarkerModule.getMarkers();
+                    if (m.length > 0) MapModule.fitBounds(m);
+                    showLoading(false);
+                    showToast(`${properties.length}건 로드 완료`);
+                },
+                // 현재 매물 반환
+                () => properties,
+                // 소요시간 업데이트 후
+                () => {
+                    updateView();
+                    showToast('소요시간 재계산 완료');
+                }
+            );
 
             // 로딩 숨김
             showLoading(false);
