@@ -10,5 +10,8 @@ js/config.js
 __pycache__/
 *.pyc
 
+# PDF
+*.pdf
+
 # OS
 .DS_Store
