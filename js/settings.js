@@ -8,6 +8,9 @@ const SettingsModule = (function() {
     const API_DELAY_MS = 200;
     const COORD_PRECISION = 5;
 
+    let conversionType = 'none';
+    let conversionPercent = 0;
+
     function loadSettings() {
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
@@ -114,6 +117,99 @@ const SettingsModule = (function() {
         return assigned;
     }
 
+    /**
+     * 보증금/월세 전환 계산
+     */
+    function getConvertedPrices(deposit, monthlyRent) {
+        if (conversionType === 'none' || conversionPercent === 0) {
+            return { deposit, monthlyRent };
+        }
+
+        if (conversionType === 'jeonse') {
+            // 전세전환: 임대료↓ 보증금↑ (이율 6.7%)
+            const rentDec = Math.floor(monthlyRent * conversionPercent / 100 / 10000) * 10000;
+            const depInc = Math.floor(rentDec / 0.067 * 12 / 1000000) * 1000000;
+            return {
+                deposit: deposit + depInc,
+                monthlyRent: monthlyRent - rentDec
+            };
+        }
+
+        if (conversionType === 'monthly') {
+            // 월세전환: 보증금↓ 임대료↑ (이율 2.5%)
+            const depDec = Math.floor(deposit * conversionPercent / 100 / 1000000) * 1000000;
+            const rentInc = Math.floor(depDec * 0.025 / 12 / 10000) * 10000;
+            return {
+                deposit: deposit - depDec,
+                monthlyRent: monthlyRent + rentInc
+            };
+        }
+
+        return { deposit, monthlyRent };
+    }
+
+    function initConversion(onConversionChange) {
+        const settings = loadSettings();
+        const typeSelect = document.getElementById('conversion-type');
+        const sliderWrap = document.getElementById('conversion-slider-wrap');
+        const slider = document.getElementById('conversion-percent');
+        const percentLabel = document.getElementById('conversion-percent-value');
+        const infoEl = document.getElementById('conversion-info');
+
+        conversionType = settings.conversionType || 'none';
+        conversionPercent = settings.conversionPercent || 0;
+
+        typeSelect.value = conversionType;
+        slider.value = conversionPercent;
+
+        function updateSliderUI() {
+            const maxPercent = conversionType === 'jeonse' ? 80 : 60;
+            slider.max = maxPercent;
+            if (conversionPercent > maxPercent) {
+                conversionPercent = maxPercent;
+                slider.value = conversionPercent;
+            }
+            percentLabel.textContent = conversionPercent + '%';
+            sliderWrap.classList.toggle('visible', conversionType !== 'none');
+
+            if (conversionType === 'jeonse') {
+                infoEl.textContent = conversionPercent > 0
+                    ? `기준 임대료의 ${conversionPercent}% → 보증금 전환 (이율 6.7%)`
+                    : '';
+            } else if (conversionType === 'monthly') {
+                infoEl.textContent = conversionPercent > 0
+                    ? `기준 보증금의 ${conversionPercent}% → 월세 전환 (이율 2.5%)`
+                    : '';
+            } else {
+                infoEl.textContent = '';
+            }
+        }
+
+        updateSliderUI();
+
+        typeSelect.addEventListener('change', () => {
+            conversionType = typeSelect.value;
+            conversionPercent = 0;
+            slider.value = 0;
+            updateSettings({ conversionType, conversionPercent });
+            updateSliderUI();
+            if (onConversionChange) onConversionChange();
+        });
+
+        slider.addEventListener('input', () => {
+            conversionPercent = parseInt(slider.value);
+            percentLabel.textContent = conversionPercent + '%';
+            updateSliderUI();
+        });
+
+        slider.addEventListener('change', () => {
+            conversionPercent = parseInt(slider.value);
+            updateSettings({ conversionPercent });
+            updateSliderUI();
+            if (onConversionChange) onConversionChange();
+        });
+    }
+
     function initToggle() {
         const panel = document.getElementById('settings-panel');
         const toggle = document.getElementById('settings-toggle');
@@ -141,9 +237,10 @@ const SettingsModule = (function() {
         });
     }
 
-    function init(onDatasetChange, getProperties, onCommuteUpdated) {
+    function init(onDatasetChange, getProperties, onCommuteUpdated, onConversionChange) {
         initToggle();
         initTheme();
+        initConversion(onConversionChange);
 
         const settings = loadSettings();
 
@@ -208,6 +305,7 @@ const SettingsModule = (function() {
 
     return {
         init,
-        getDatasetPath
+        getDatasetPath,
+        getConvertedPrices
     };
 })();

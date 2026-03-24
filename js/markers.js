@@ -36,6 +36,16 @@ const MarkerModule = (function() {
      * 단일 호수 InfoWindow 컨텐츠
      */
     function createSingleUnitContent(property) {
+        const converted = SettingsModule.getConvertedPrices(property.deposit, property.monthlyRent);
+        const isConverted = converted.deposit !== property.deposit || converted.monthlyRent !== property.monthlyRent;
+
+        const depDisplay = isConverted
+            ? `<span class="price-converted">${formatPrice(property.deposit)}</span>${formatPrice(converted.deposit)}`
+            : formatPrice(property.deposit);
+        const rentDisplay = isConverted
+            ? `<span class="price-converted">${formatPrice(property.monthlyRent)}</span>${formatPrice(converted.monthlyRent)}`
+            : formatPrice(property.monthlyRent);
+
         return `
             <div class="unit-item" data-id="${property.id}" data-unit="${property.unit}">
                 <div class="unit-header">
@@ -44,8 +54,8 @@ const MarkerModule = (function() {
                 </div>
                 <div class="unit-details">
                     <span>${property.exclusiveArea}㎡</span>
-                    <span>보증금 ${formatPrice(property.deposit)}만</span>
-                    <span>월 ${formatPrice(property.monthlyRent)}만</span>
+                    <span>보증금 ${depDisplay}만</span>
+                    <span>월 ${rentDisplay}만</span>
                 </div>
             </div>
         `;

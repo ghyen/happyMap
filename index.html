@@ -33,6 +33,23 @@
                     <div id="office-status" class="setting-status"></div>
                 </div>
 
+                <div class="setting-group">
+                    <label for="conversion-type">보증금/월세 전환</label>
+                    <select id="conversion-type">
+                        <option value="none">전환 없음</option>
+                        <option value="jeonse">전세전환 (보증금↑ 월세↓)</option>
+                        <option value="monthly">월세전환 (보증금↓ 월세↑)</option>
+                    </select>
+                    <div id="conversion-slider-wrap" class="conversion-slider-wrap">
+                        <div class="conversion-slider-header">
+                            <span>전환 비율</span>
+                            <span id="conversion-percent-value">0%</span>
+                        </div>
+                        <input type="range" id="conversion-percent" min="0" max="80" value="0" step="10">
+                    </div>
+                    <div id="conversion-info" class="setting-status"></div>
+                </div>
+
                 <div class="settings-footer">
                     <a href="https://github.com/ghyen/happyMap" target="_blank" class="footer-link">
                         <span class="footer-icon">GitHub</span>

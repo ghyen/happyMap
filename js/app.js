@@ -107,8 +107,17 @@ const App = (function() {
                     <span class="elevator-badge ${property.elevator ? 'yes' : 'no'}">승강기 ${property.elevator ? 'O' : 'X'}</span>
                 </div>
                 <div class="price-info">
-                    <span class="deposit">보증금 ${MarkerModule.formatPrice(property.deposit)}만</span>
-                    <span class="rent">월 ${MarkerModule.formatPrice(property.monthlyRent)}만</span>
+                    ${(() => {
+                        const c = SettingsModule.getConvertedPrices(property.deposit, property.monthlyRent);
+                        const changed = c.deposit !== property.deposit || c.monthlyRent !== property.monthlyRent;
+                        const dep = changed
+                            ? `<span class="price-converted">${MarkerModule.formatPrice(property.deposit)}</span>${MarkerModule.formatPrice(c.deposit)}`
+                            : MarkerModule.formatPrice(property.deposit);
+                        const rent = changed
+                            ? `<span class="price-converted">${MarkerModule.formatPrice(property.monthlyRent)}</span>${MarkerModule.formatPrice(c.monthlyRent)}`
+                            : MarkerModule.formatPrice(property.monthlyRent);
+                        return `<span class="deposit">보증금 ${dep}만</span><span class="rent">월 ${rent}만</span>`;
+                    })()}
                     ${property.commuteMin != null ? `<span class="commute">🚗 ${property.commuteMin}분</span>` : ''}
                 </div>
             `;
@@ -349,6 +358,9 @@ const App = (function() {
                 () => {
                     updateView();
                     showToast('소요시간 재계산 완료');
+                },
+                () => {
+                    updateView(false);
                 }
             );
 
