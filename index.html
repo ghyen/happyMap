@@ -50,11 +50,26 @@
                     <div id="conversion-info" class="setting-status"></div>
                 </div>
 
+                <div class="setting-group">
+                    <label>PDF → 데이터셋 생성</label>
+                    <div class="pdf-upload-area" id="pdf-upload-area">
+                        <input type="file" id="pdf-file" accept=".pdf" hidden>
+                        <button id="pdf-select-btn" class="btn-file" type="button">PDF 파일 선택</button>
+                        <span id="pdf-filename" class="pdf-filename">선택된 파일 없음</span>
+                    </div>
+                    <input type="text" id="dataset-name" placeholder="데이터셋 이름 (예: 2026년 2차)">
+                    <button id="pdf-generate-btn" class="btn-primary" disabled>데이터셋 생성</button>
+                    <div id="pdf-progress" class="pdf-progress" hidden>
+                        <div class="pdf-progress-bar"><div id="pdf-progress-fill" class="pdf-progress-fill"></div></div>
+                        <span id="pdf-progress-text" class="setting-status"></span>
+                    </div>
+                </div>
+
                 <div class="settings-footer">
                     <a href="https://github.com/ghyen/happyMap" target="_blank" class="footer-link">
                         <span class="footer-icon">GitHub</span>
                     </a>
-                    <a href="https://toss.me/ghyen" target="_blank" class="footer-link sponsor">
+                    <a href="https://qr.kakaopay.com/Ej78FFgaw" target="_blank" class="footer-link sponsor">
                         <span class="footer-icon">후원하기</span>
                     </a>
                 </div>
@@ -65,7 +80,7 @@
         <aside id="sidebar">
             <header class="sidebar-header">
                 <h1>청년매입임대주택</h1>
-                <p class="subtitle" id="dataset-name">서울시 2026년 1차 장기미임대 매입임대주택</p>
+                <p class="subtitle" id="dataset-subtitle">서울시 2026년 1차 장기미임대 매입임대주택</p>
             </header>
 
             <!-- 검색 섹션 -->
@@ -200,6 +215,8 @@
     <script src="js/config.js"></script>
 
     <!-- 앱 스크립트 -->
+    <script src="js/dataset-store.js"></script>
+    <script src="js/pdf-parser.js"></script>
     <script src="js/settings.js"></script>
     <script src="js/map.js"></script>
     <script src="js/markers.js"></script>

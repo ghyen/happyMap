@@ -287,6 +287,57 @@ body.dark .elevator-badge.no {
     margin-right: 4px;
 }
 
+.pdf-upload-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.btn-file {
+    padding: 6px 12px;
+    border: 1px dashed #555;
+    border-radius: 6px;
+    background: transparent;
+    color: #ccc;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-file:hover {
+    border-color: #667eea;
+    color: #667eea;
+}
+
+.pdf-filename {
+    font-size: 11px;
+    color: #777;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pdf-progress {
+    margin-top: 8px;
+}
+
+.pdf-progress-bar {
+    height: 4px;
+    background: #333;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.pdf-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 2px;
+    transition: width 0.3s;
+}
+
 .settings-footer {
     margin-top: auto;
     padding-top: 20px;
@@ -324,8 +375,8 @@ body.dark .elevator-badge.no {
 
 /* Sidebar */
 #sidebar {
-    width: 260px;
-    min-width: 260px;
+    width: 320px;
+    min-width: 320px;
     height: 100vh;
     background: #fff;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);

@@ -237,10 +237,151 @@ const SettingsModule = (function() {
         });
     }
 
+    /**
+     * 매물 배열의 고유 주소를 지오코딩
+     */
+    async function batchGeocode(properties, onProgress) {
+        const addressMap = new Map();
+        properties.forEach(p => {
+            if (!addressMap.has(p.address)) {
+                addressMap.set(p.address, null);
+            }
+        });
+
+        const addresses = Array.from(addressMap.keys());
+        let done = 0;
+
+        for (const addr of addresses) {
+            const coords = await geocode(addr);
+            if (coords) addressMap.set(addr, coords);
+            done++;
+            if (onProgress) onProgress(done, addresses.length);
+            await new Promise(r => setTimeout(r, API_DELAY_MS));
+        }
+
+        let assigned = 0;
+        properties.forEach(p => {
+            const coords = addressMap.get(p.address);
+            if (coords) {
+                p.lat = coords.lat;
+                p.lng = coords.lng;
+                assigned++;
+            }
+        });
+
+        return { assigned, total: addresses.length, failed: addresses.filter(a => !addressMap.get(a)) };
+    }
+
+    function initPdfUpload(onDatasetChange) {
+        const fileInput = document.getElementById('pdf-file');
+        const selectBtn = document.getElementById('pdf-select-btn');
+        const filenameEl = document.getElementById('pdf-filename');
+        const nameInput = document.getElementById('dataset-name');
+        const generateBtn = document.getElementById('pdf-generate-btn');
+        const progressWrap = document.getElementById('pdf-progress');
+        const progressFill = document.getElementById('pdf-progress-fill');
+        const progressText = document.getElementById('pdf-progress-text');
+
+        selectBtn.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', () => {
+            const file = fileInput.files[0];
+            if (file) {
+                filenameEl.textContent = file.name;
+                generateBtn.disabled = false;
+                if (!nameInput.value) {
+                    nameInput.value = file.name.replace(/\.pdf$/i, '');
+                }
+            }
+        });
+
+        generateBtn.addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            const name = nameInput.value.trim();
+            if (!file || !name) return;
+
+            generateBtn.disabled = true;
+            progressWrap.hidden = false;
+
+            function setProgress(text, percent) {
+                progressText.textContent = text;
+                progressFill.style.width = percent + '%';
+            }
+
+            try {
+                // 1. PDF 파싱
+                const { properties, errors } = await PdfParser.parse(file, setProgress);
+
+                if (properties.length === 0) {
+                    setProgress('테이블을 찾을 수 없습니다.', 0);
+                    generateBtn.disabled = false;
+                    return;
+                }
+
+                if (errors.length > 0) {
+                    console.warn(`파싱 오류 ${errors.length}건:`, errors);
+                }
+
+                // 2. 지오코딩
+                setProgress(`지오코딩 시작... (0/${properties.length})`, 60);
+                const geocodeResult = await batchGeocode(properties, (done, total) => {
+                    const pct = 60 + (done / total) * 35;
+                    setProgress(`지오코딩 중... (${done}/${total} 주소)`, pct);
+                });
+
+                if (geocodeResult.failed.length > 0) {
+                    console.warn('지오코딩 실패 주소:', geocodeResult.failed);
+                }
+
+                // 3. IndexedDB 저장
+                setProgress('저장 중...', 97);
+                await DatasetStore.save(name, properties);
+
+                // 4. 드롭다운에 추가 & 선택
+                const datasetSelect = document.getElementById('dataset-select');
+                const optionValue = 'idb:' + name;
+
+                if (!datasetSelect.querySelector(`option[value="${CSS.escape(optionValue)}"]`)) {
+                    const option = document.createElement('option');
+                    option.value = optionValue;
+                    option.textContent = name;
+                    datasetSelect.appendChild(option);
+                }
+                datasetSelect.value = optionValue;
+                updateSettings({ dataset: optionValue });
+
+                setProgress(`완료! ${properties.length}건 (지오코딩 ${geocodeResult.assigned}건)`, 100);
+
+                // 데이터셋 로드
+                if (onDatasetChange) onDatasetChange(optionValue);
+
+            } catch (e) {
+                console.error('데이터셋 생성 실패:', e);
+                setProgress('오류: ' + e.message, 0);
+            }
+
+            generateBtn.disabled = false;
+        });
+    }
+
+    async function loadSavedDatasets() {
+        const datasets = await DatasetStore.list();
+        const datasetSelect = document.getElementById('dataset-select');
+
+        datasets.forEach(d => {
+            const option = document.createElement('option');
+            option.value = 'idb:' + d.name;
+            option.textContent = `${d.name} (${d.count}건)`;
+            datasetSelect.appendChild(option);
+        });
+    }
+
     function init(onDatasetChange, getProperties, onCommuteUpdated, onConversionChange) {
         initToggle();
         initTheme();
         initConversion(onConversionChange);
+        initPdfUpload(onDatasetChange);
+        loadSavedDatasets();
 
         const settings = loadSettings();
 
@@ -250,15 +391,15 @@ const SettingsModule = (function() {
         }
 
         const datasetSelect = document.getElementById('dataset-select');
-        const datasetNameEl = document.getElementById('dataset-name');
+        const datasetSubtitle = document.getElementById('dataset-subtitle');
         if (settings.dataset) {
             datasetSelect.value = settings.dataset;
         }
-        datasetNameEl.textContent = datasetSelect.selectedOptions[0]?.textContent || '';
+        datasetSubtitle.textContent = datasetSelect.selectedOptions[0]?.textContent || '';
 
         datasetSelect.addEventListener('change', () => {
             updateSettings({ dataset: datasetSelect.value });
-            datasetNameEl.textContent = datasetSelect.selectedOptions[0]?.textContent || '';
+            datasetSubtitle.textContent = datasetSelect.selectedOptions[0]?.textContent || '';
             if (onDatasetChange) onDatasetChange(datasetSelect.value);
         });
 
