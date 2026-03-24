@@ -1017,7 +1017,17 @@ body.dark .elevator-badge.no {
     #sidebar {
         max-height: none;
         padding-bottom: 72px;
-        overflow: hidden;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .list-section {
+        flex: none;
+        overflow: visible;
+    }
+
+    #property-list {
+        overflow-y: visible;
     }
 
     #map-container {
