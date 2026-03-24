@@ -152,6 +152,8 @@ const App = (function() {
 
         const results = filteredProperties.filter(p => isSearchMatch(p, searchKeyword));
 
+        window.va?.track('search', { keyword: searchKeyword });
+
         if (results.length === 0) {
             showToast('검색 결과가 없습니다');
         } else {
@@ -237,6 +239,7 @@ const App = (function() {
             searchKeyword = '';
             document.getElementById('search-input').value = '';
             updateView();
+            window.va?.track('filter_apply');
         });
 
         document.getElementById('reset-filter').addEventListener('click', () => {
