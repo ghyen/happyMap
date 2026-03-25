@@ -1,3 +1,12 @@
+// 전역 에러 핸들러 — JS 에러 시 무한 로딩 방지
+window.addEventListener('error', function() {
+    document.getElementById('loading')?.classList.add('hidden');
+});
+window.addEventListener('unhandledrejection', function(e) {
+    console.error('Unhandled:', e.reason);
+    document.getElementById('loading')?.classList.add('hidden');
+});
+
 /**
  * 메인 앱 로직
  */
@@ -46,6 +55,20 @@ const App = (function() {
     }
 
     /**
+     * 지도 리사이즈 트리거 (타일 깨짐 방지)
+     */
+    function relayout() {
+        const trigger = () => {
+            const map = MapModule.getMap();
+            if (map && window.kakao?.maps?.event) {
+                kakao.maps.event.trigger(map, 'resize');
+            }
+        };
+        requestAnimationFrame(() => requestAnimationFrame(trigger));
+        setTimeout(trigger, 300);
+    }
+
+    /**
      * 모바일 뷰 전환
      */
     function setMobileView(view) {
@@ -67,12 +90,7 @@ const App = (function() {
         }
 
         if (mobileView === 'map') {
-            setTimeout(() => {
-                const map = MapModule.getMap();
-                if (map && window.kakao?.maps?.event) {
-                    kakao.maps.event.trigger(map, 'resize');
-                }
-            }, 100);
+            relayout();
         }
     }
 
@@ -291,13 +309,30 @@ const App = (function() {
 
         const mobileListBtn = document.getElementById('mobile-show-list');
         const mobileMapBtn = document.getElementById('mobile-show-map');
+        const mobileSettingsBtn = document.getElementById('mobile-show-settings');
         if (mobileListBtn && mobileMapBtn) {
-            mobileListBtn.addEventListener('click', () => setMobileView('list'));
-            mobileMapBtn.addEventListener('click', () => setMobileView('map'));
+            mobileListBtn.addEventListener('click', () => {
+                document.getElementById('settings-panel').classList.remove('mobile-open');
+                setMobileView('list');
+            });
+            mobileMapBtn.addEventListener('click', () => {
+                document.getElementById('settings-panel').classList.remove('mobile-open');
+                setMobileView('map');
+            });
+        }
+        if (mobileSettingsBtn) {
+            mobileSettingsBtn.addEventListener('click', () => {
+                document.getElementById('settings-panel').classList.add('mobile-open');
+            });
         }
 
         window.addEventListener('resize', () => {
             setMobileView(mobileView);
+            relayout();
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) relayout();
         });
 
         let boundsChangeTimeout;
@@ -382,7 +417,12 @@ const App = (function() {
         } catch (error) {
             console.error('앱 초기화 실패:', error);
             showLoading(false);
-            showToast('앱 초기화에 실패했습니다');
+
+            const loadingEl = document.getElementById('loading');
+            loadingEl.classList.remove('hidden');
+            loadingEl.innerHTML = error.message?.includes('카카오 지도')
+                ? '<p>지도를 불러올 수 없습니다.</p><small>잠시 후 새로고침 해주세요.</small>'
+                : '<p>앱을 불러올 수 없습니다.</p><small>잠시 후 새로고침 해주세요.</small>';
         }
     }
 

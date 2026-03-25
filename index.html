@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>서울시 청년매입임대주택</title>
+    <title>서울시 청년매입임대주택 지도</title>
+    <meta name="description" content="서울시 청년매입임대주택을 지도에서 검색하고, 자치구·면적·보증금·월세·출퇴근 시간으로 필터링하세요. 무료 오픈소스 서비스.">
+    <meta property="og:title" content="서울시 청년매입임대주택 지도">
+    <meta property="og:description" content="서울시 청년매입임대주택을 지도에서 검색하고, 조건별로 필터링하세요.">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="ko_KR">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -52,10 +57,10 @@
 
                 <div class="setting-group">
                     <label>PDF → 데이터셋 생성</label>
-                    <div class="pdf-upload-area" id="pdf-upload-area">
+                    <div class="pdf-drop-zone" id="pdf-drop-zone">
                         <input type="file" id="pdf-file" accept=".pdf" hidden>
-                        <button id="pdf-select-btn" class="btn-file" type="button">PDF 파일 선택</button>
-                        <span id="pdf-filename" class="pdf-filename">선택된 파일 없음</span>
+                        <span class="pdf-drop-text">PDF 파일을 드래그하거나 클릭하여 선택</span>
+                        <span id="pdf-filename" class="pdf-filename"></span>
                     </div>
                     <input type="text" id="dataset-name" placeholder="데이터셋 이름 (예: 2026년 2차)">
                     <button id="pdf-generate-btn" class="btn-primary" disabled>데이터셋 생성</button>
@@ -204,6 +209,7 @@
         <nav id="mobile-view-switcher" aria-label="모바일 보기 전환">
             <button id="mobile-show-list" class="mobile-switch-btn active" type="button">목록</button>
             <button id="mobile-show-map" class="mobile-switch-btn" type="button">지도</button>
+            <button id="mobile-show-settings" class="mobile-switch-btn" type="button">설정</button>
         </nav>
     </div>
 

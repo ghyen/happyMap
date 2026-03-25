@@ -287,35 +287,41 @@ body.dark .elevator-badge.no {
     margin-right: 4px;
 }
 
-.pdf-upload-area {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-}
-
-.btn-file {
-    padding: 6px 12px;
-    border: 1px dashed #555;
-    border-radius: 6px;
-    background: transparent;
-    color: #ccc;
-    font-size: 12px;
+.pdf-drop-zone {
+    border: 2px dashed #444;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
     cursor: pointer;
-    white-space: nowrap;
+    margin-bottom: 8px;
+    transition: border-color 0.2s, background 0.2s;
 }
 
-.btn-file:hover {
+.pdf-drop-zone:hover,
+.pdf-drop-zone.dragover {
     border-color: #667eea;
-    color: #667eea;
+    background: rgba(102, 126, 234, 0.08);
+}
+
+.pdf-drop-text {
+    font-size: 12px;
+    color: #888;
+    display: block;
+}
+
+.pdf-drop-zone.has-file .pdf-drop-text {
+    display: none;
 }
 
 .pdf-filename {
-    font-size: 11px;
-    color: #777;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-size: 12px;
+    color: #667eea;
+    font-weight: 600;
+    display: none;
+}
+
+.pdf-drop-zone.has-file .pdf-filename {
+    display: block;
 }
 
 .pdf-progress {
@@ -1058,6 +1064,29 @@ body.dark .elevator-badge.no {
         display: none;
     }
 
+    #settings-panel.mobile-open {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        min-width: 100%;
+        height: 100dvh;
+        z-index: 1100;
+        padding-bottom: 72px;
+    }
+
+    #settings-panel.mobile-open .settings-content {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    #settings-panel.mobile-open #settings-toggle {
+        display: flex;
+    }
+
     #sidebar,
     #map-container {
         width: 100%;
@@ -1092,7 +1121,7 @@ body.dark .elevator-badge.no {
         bottom: max(12px, env(safe-area-inset-bottom));
         z-index: 1200;
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr 1fr 1fr;
         gap: 8px;
         background: rgba(17, 24, 39, 0.92);
         backdrop-filter: blur(10px);

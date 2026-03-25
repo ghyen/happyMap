@@ -215,6 +215,10 @@ const SettingsModule = (function() {
         const toggle = document.getElementById('settings-toggle');
 
         toggle.addEventListener('click', () => {
+            if (panel.classList.contains('mobile-open')) {
+                panel.classList.remove('mobile-open');
+                return;
+            }
             panel.classList.toggle('collapsed');
             toggle.textContent = panel.classList.contains('collapsed') ? '⚙' : '✕';
         });
@@ -274,7 +278,7 @@ const SettingsModule = (function() {
 
     function initPdfUpload(onDatasetChange) {
         const fileInput = document.getElementById('pdf-file');
-        const selectBtn = document.getElementById('pdf-select-btn');
+        const dropZone = document.getElementById('pdf-drop-zone');
         const filenameEl = document.getElementById('pdf-filename');
         const nameInput = document.getElementById('dataset-name');
         const generateBtn = document.getElementById('pdf-generate-btn');
@@ -282,17 +286,35 @@ const SettingsModule = (function() {
         const progressFill = document.getElementById('pdf-progress-fill');
         const progressText = document.getElementById('pdf-progress-text');
 
-        selectBtn.addEventListener('click', () => fileInput.click());
-
-        fileInput.addEventListener('change', () => {
-            const file = fileInput.files[0];
-            if (file) {
-                filenameEl.textContent = file.name;
-                generateBtn.disabled = false;
-                if (!nameInput.value) {
-                    nameInput.value = file.name.replace(/\.pdf$/i, '');
-                }
+        function setFile(file) {
+            if (!file || !file.name.toLowerCase().endsWith('.pdf')) return;
+            // DataTransfer로 fileInput에 파일 설정
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            fileInput.files = dt.files;
+            filenameEl.textContent = file.name;
+            dropZone.classList.add('has-file');
+            generateBtn.disabled = false;
+            if (!nameInput.value) {
+                nameInput.value = file.name.replace(/\.pdf$/i, '');
             }
+        }
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            setFile(file);
         });
 
         generateBtn.addEventListener('click', async () => {

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://happymap.vercel.app/sitemap.xml
