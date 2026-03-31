@@ -72,7 +72,7 @@ const App = (function() {
      * 모바일 뷰 전환
      */
     function setMobileView(view) {
-        mobileView = view === 'map' ? 'map' : 'list';
+        mobileView = view === 'map' ? 'map' : view === 'settings' ? 'settings' : 'list';
 
         if (window.innerWidth > 768) {
             document.body.classList.remove('mobile-map-view', 'mobile-list-view');
@@ -84,9 +84,13 @@ const App = (function() {
 
         const listBtn = document.getElementById('mobile-show-list');
         const mapBtn = document.getElementById('mobile-show-map');
+        const settingsBtn = document.getElementById('mobile-show-settings');
         if (listBtn && mapBtn) {
             listBtn.classList.toggle('active', mobileView === 'list');
             mapBtn.classList.toggle('active', mobileView === 'map');
+        }
+        if (settingsBtn) {
+            settingsBtn.classList.toggle('active', mobileView === 'settings');
         }
 
         if (mobileView === 'map') {
@@ -323,6 +327,7 @@ const App = (function() {
         if (mobileSettingsBtn) {
             mobileSettingsBtn.addEventListener('click', () => {
                 document.getElementById('settings-panel').classList.add('mobile-open');
+                setMobileView('settings');
             });
         }
 
