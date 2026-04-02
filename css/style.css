@@ -400,12 +400,76 @@ body.dark .elevator-badge.no {
 .sidebar-header h1 {
     font-size: 15px;
     font-weight: 600;
-    margin-bottom: 4px;
+    margin-bottom: 0;
 }
 
 .sidebar-header .subtitle {
     font-size: 12px;
     opacity: 0.9;
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.auth-area {
+    flex-shrink: 0;
+}
+
+.btn-kakao-login {
+    padding: 4px 10px;
+    background: #FEE500;
+    color: #191919;
+    border: none;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-kakao-login:hover {
+    background: #F0D800;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.user-info .profile-img {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-info .nickname {
+    font-size: 12px;
+    font-weight: 500;
+    color: #fff;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.btn-logout {
+    padding: 3px 8px;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 10px;
+    cursor: pointer;
+}
+
+.btn-logout:hover {
+    background: rgba(255,255,255,0.25);
 }
 
 /* Search Section */

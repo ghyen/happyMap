@@ -417,6 +417,8 @@ const App = (function() {
                 }
             );
 
+            AuthModule.init();
+
             setMobileView('list');
             showLoading(false);
         } catch (error) {

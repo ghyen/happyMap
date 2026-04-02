@@ -84,7 +84,17 @@
         <!-- 사이드바 -->
         <aside id="sidebar">
             <header class="sidebar-header">
-                <h1>청년매입임대주택</h1>
+                <div class="header-top">
+                    <h1>청년매입임대주택</h1>
+                    <div class="auth-area">
+                        <button id="login-btn" class="btn-kakao-login">카카오 로그인</button>
+                        <div id="user-info" class="user-info" style="display:none">
+                            <img class="profile-img" src="" alt="">
+                            <span class="nickname"></span>
+                            <button id="logout-btn" class="btn-logout">로그아웃</button>
+                        </div>
+                    </div>
+                </div>
                 <p class="subtitle" id="dataset-subtitle">서울시 2026년 1차 장기미임대 매입임대주택</p>
             </header>
 
@@ -221,6 +231,7 @@
     <script src="js/config.js"></script>
 
     <!-- 앱 스크립트 -->
+    <script src="js/auth.js"></script>
     <script src="js/dataset-store.js"></script>
     <script src="js/pdf-parser.js"></script>
     <script src="js/settings.js"></script>
