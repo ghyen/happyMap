@@ -239,6 +239,77 @@ app.get('/api/social/:dataset/counts', (req, res) => {
     res.json(counts);
 });
 
+// ── PDF 파싱 (Ollama LLM) ────────────────────────────────
+
+const PDF_SYSTEM_PROMPT = `당신은 한국 공공임대주택 공고문 PDF에서 매물 정보를 추출하는 파서입니다.
+텍스트에서 매물 테이블의 각 행을 찾아 JSON 배열로 변환하세요.
+
+각 매물 객체:
+- district: 자치구 (예: "강남구")
+- propertyId: 단지번호 (예: "강남01")
+- address: 전체 주소 (서울특별시로 시작해야 함)
+- unit: 호수 (문자열)
+- exclusiveArea: 전용면적 (㎡, 숫자)
+- rooms: 방 개수 (정수 또는 null)
+- elevator: 승강기 유무 (true/false 또는 null)
+- deposit: 임대보증금 (원 단위 정수)
+- monthlyRent: 월임대료 (원 단위 정수)
+
+매물 행이 아닌 텍스트(헤더, 주의사항 등)는 무시하세요.
+주소가 "서울"로 시작하지 않으면 "서울특별시 [자치구] "를 앞에 붙이세요.
+반드시 JSON만 응답: { "properties": [...] }
+매물이 없으면: { "properties": [] }`;
+
+const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen3.5:9b';
+
+app.post('/api/parse-pdf', async (req, res) => {
+    const { text } = req.body;
+    if (!text) return res.status(400).json({ error: 'no text' });
+
+    try {
+        const ollamaRes = await fetch(`${OLLAMA_URL}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: OLLAMA_MODEL,
+                messages: [
+                    { role: 'system', content: PDF_SYSTEM_PROMPT },
+                    { role: 'user', content: text }
+                ],
+                format: 'json',
+                stream: false,
+                options: { temperature: 0, num_predict: 16384 }
+            })
+        });
+
+        if (!ollamaRes.ok) {
+            return res.status(502).json({ error: 'LLM 요청 실패' });
+        }
+
+        const data = await ollamaRes.json();
+        const parsed = JSON.parse(data.message.content);
+        const properties = (parsed.properties || []).map((p, i) => ({
+            id: i + 1,
+            district: p.district || '',
+            propertyId: p.propertyId || '',
+            address: p.address || '',
+            unit: String(p.unit || ''),
+            exclusiveArea: Number(p.exclusiveArea) || 0,
+            rooms: p.rooms != null ? Number(p.rooms) : null,
+            elevator: p.elevator != null ? Boolean(p.elevator) : null,
+            deposit: Number(p.deposit) || 0,
+            monthlyRent: Number(p.monthlyRent) || 0,
+            lat: null, lng: null, commuteMin: null
+        }));
+
+        res.json({ properties });
+    } catch (err) {
+        console.error('PDF parse error:', err);
+        res.status(500).json({ error: 'LLM 파싱 실패' });
+    }
+});
+
 // ── 시작 ────────────────────────────────────────────────
 
 generateConfig();
