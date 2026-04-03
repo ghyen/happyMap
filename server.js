@@ -239,29 +239,64 @@ app.get('/api/social/:dataset/counts', (req, res) => {
     res.json(counts);
 });
 
-// ── PDF 파싱 (Ollama LLM) ────────────────────────────────
+// ── PDF 파싱 (Ollama LLM 정제 → JS 데이터 생성) ──────────
 
-const PDF_SYSTEM_PROMPT = `당신은 한국 공공임대주택 공고문 PDF에서 매물 정보를 추출하는 파서입니다.
-텍스트에서 매물 테이블의 각 행을 찾아 JSON 배열로 변환하세요.
+const PDF_SYSTEM_PROMPT = `/no_think
+당신은 공공임대주택 공고문 PDF에서 추출된 텍스트를 정제하는 정규화 도구입니다.
 
-각 매물 객체:
-- district: 자치구 (예: "강남구")
-- propertyId: 단지번호 (예: "강남01")
-- address: 전체 주소 (서울특별시로 시작해야 함)
-- unit: 호수 (문자열)
-- exclusiveArea: 전용면적 (㎡, 숫자)
-- rooms: 방 개수 (정수 또는 null)
-- elevator: 승강기 유무 (true/false 또는 null)
-- deposit: 임대보증금 (원 단위 정수)
-- monthlyRent: 월임대료 (원 단위 정수)
+입력 텍스트에서 매물 데이터 행만 찾아서, 아래 형식으로 한 줄씩 출력하세요.
+매물이 아닌 텍스트(헤더, 안내문, 주의사항, 빈 행)는 모두 무시하세요.
 
-매물 행이 아닌 텍스트(헤더, 주의사항 등)는 무시하세요.
-주소가 "서울"로 시작하지 않으면 "서울특별시 [자치구] "를 앞에 붙이세요.
-반드시 JSON만 응답: { "properties": [...] }
-매물이 없으면: { "properties": [] }`;
+출력 형식 (정확히 9개 필드, | 로 구분):
+자치구|단지번호|주소|호수|전용면적|방개수|승강기|임대보증금|월임대료
+
+규칙:
+- 주소는 반드시 "서울특별시"로 시작하도록 보완
+- 전용면적은 소수점 포함 숫자 그대로 (예: 25.39)
+- 방개수는 숫자, 모르면 0
+- 승강기는 O 또는 X, 모르면 X
+- 임대보증금과 월임대료는 콤마 제거한 숫자 (예: 67810000)
+- 원본 숫자를 그대로 옮기고, 절대 숫자를 추측하거나 변경하지 마세요
+
+예시 출력:
+강남구|강남01|서울특별시 강남구 역삼동 123-4|303|25.39|1|O|67810000|61600`;
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen3.5:9b';
+
+function parseCleanedRows(text) {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const properties = [];
+
+    for (const line of lines) {
+        const parts = line.split('|').map(s => s.trim());
+        if (parts.length < 9) continue;
+
+        const [district, propertyId, address, unit, area, rooms, elevator, deposit, rent] = parts;
+
+        const exclusiveArea = parseFloat(area);
+        const depositNum = parseInt(deposit.replace(/,/g, ''));
+        const rentNum = parseInt(rent.replace(/,/g, ''));
+
+        if (!address || isNaN(exclusiveArea) || isNaN(depositNum) || isNaN(rentNum)) continue;
+
+        properties.push({
+            id: properties.length + 1,
+            district: district || '',
+            propertyId: propertyId || '',
+            address,
+            unit: String(unit),
+            exclusiveArea,
+            rooms: parseInt(rooms) || null,
+            elevator: elevator === 'O',
+            deposit: depositNum,
+            monthlyRent: rentNum,
+            lat: null, lng: null, commuteMin: null
+        });
+    }
+
+    return properties;
+}
 
 app.post('/api/parse-pdf', async (req, res) => {
     const { text } = req.body;
@@ -277,7 +312,6 @@ app.post('/api/parse-pdf', async (req, res) => {
                     { role: 'system', content: PDF_SYSTEM_PROMPT },
                     { role: 'user', content: text }
                 ],
-                format: 'json',
                 stream: false,
                 options: { temperature: 0, num_predict: 16384 }
             })
@@ -288,20 +322,8 @@ app.post('/api/parse-pdf', async (req, res) => {
         }
 
         const data = await ollamaRes.json();
-        const parsed = JSON.parse(data.message.content);
-        const properties = (parsed.properties || []).map((p, i) => ({
-            id: i + 1,
-            district: p.district || '',
-            propertyId: p.propertyId || '',
-            address: p.address || '',
-            unit: String(p.unit || ''),
-            exclusiveArea: Number(p.exclusiveArea) || 0,
-            rooms: p.rooms != null ? Number(p.rooms) : null,
-            elevator: p.elevator != null ? Boolean(p.elevator) : null,
-            deposit: Number(p.deposit) || 0,
-            monthlyRent: Number(p.monthlyRent) || 0,
-            lat: null, lng: null, commuteMin: null
-        }));
+        const cleanedText = data.message.content;
+        const properties = parseCleanedRows(cleanedText);
 
         res.json({ properties });
     } catch (err) {
