@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const jwt = require('jsonwebtoken');
 const Database = require('better-sqlite3');
 const fs = require('fs');
@@ -87,6 +88,21 @@ function optionalAuth(req, res, next) {
 }
 
 app.use(express.json());
+
+// ── Rate Limiting ────────────────────────────────────────
+
+// API 전체: 1분에 60회
+const apiLimiter = rateLimit({ windowMs: 60 * 1000, max: 60, message: { error: 'too many requests' } });
+app.use('/api/', apiLimiter);
+
+// 쓰기 API (좋아요/댓글): 1분에 20회
+const writeLimiter = rateLimit({ windowMs: 60 * 1000, max: 20, message: { error: 'too many requests' } });
+app.use('/api/social/*/like', writeLimiter);
+app.use('/api/social/*/comment', writeLimiter);
+
+// 인증 API: 5분에 10회
+const authLimiter = rateLimit({ windowMs: 5 * 60 * 1000, max: 10, message: { error: 'too many requests' } });
+app.use('/api/auth/kakao', authLimiter);
 
 // 정적 파일 서빙
 app.use('/css', express.static(path.join(__dirname, 'css')));
