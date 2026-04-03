@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const Database = require('better-sqlite3');
 const fs = require('fs');
 const path = require('path');
 
@@ -36,6 +37,56 @@ function parseCookies(header) {
     });
     return cookies;
 }
+
+// ── SQLite 초기화 ────────────────────────────────────────
+
+const db = new Database(path.join(__dirname, 'data', 'social.db'));
+db.pragma('journal_mode = WAL');
+db.exec(`
+    CREATE TABLE IF NOT EXISTS likes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        dataset TEXT NOT NULL,
+        address TEXT NOT NULL,
+        user_id INTEGER NOT NULL,
+        created_at TEXT DEFAULT (datetime('now')),
+        UNIQUE(dataset, address, user_id)
+    );
+    CREATE TABLE IF NOT EXISTS comments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        dataset TEXT NOT NULL,
+        address TEXT NOT NULL,
+        user_id INTEGER NOT NULL,
+        nickname TEXT NOT NULL,
+        profile_image TEXT DEFAULT '',
+        content TEXT NOT NULL,
+        created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_likes_lookup ON likes(dataset, address);
+    CREATE INDEX IF NOT EXISTS idx_comments_lookup ON comments(dataset, address);
+`);
+
+// 인증 미들웨어
+function authMiddleware(req, res, next) {
+    const token = parseCookies(req.headers.cookie).auth_token;
+    if (!token) return res.status(401).json({ error: 'unauthorized' });
+    try {
+        req.user = jwt.verify(token, process.env.JWT_SECRET);
+        next();
+    } catch {
+        res.status(401).json({ error: 'unauthorized' });
+    }
+}
+
+// 쿠키에서 유저 정보 (optional, 비로그인도 OK)
+function optionalAuth(req, res, next) {
+    const token = parseCookies(req.headers.cookie).auth_token;
+    if (token) {
+        try { req.user = jwt.verify(token, process.env.JWT_SECRET); } catch {}
+    }
+    next();
+}
+
+app.use(express.json());
 
 // 정적 파일 서빙
 app.use('/css', express.static(path.join(__dirname, 'css')));
@@ -112,6 +163,64 @@ app.get('/api/auth/me', (req, res) => {
 app.get('/api/auth/logout', (req, res) => {
     res.setHeader('Set-Cookie', 'auth_token=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');
     res.redirect('/');
+});
+
+// ── Social 라우트 ────────────────────────────────────────
+
+app.get('/api/social/:dataset/:address', optionalAuth, (req, res) => {
+    const { dataset, address } = req.params;
+    const likeCount = db.prepare('SELECT COUNT(*) as c FROM likes WHERE dataset=? AND address=?').get(dataset, address).c;
+    const comments = db.prepare('SELECT id, user_id, nickname, profile_image, content, created_at FROM comments WHERE dataset=? AND address=? ORDER BY created_at ASC').all(dataset, address);
+    let liked = null;
+    if (req.user) {
+        liked = !!db.prepare('SELECT 1 FROM likes WHERE dataset=? AND address=? AND user_id=?').get(dataset, address, req.user.id);
+    }
+    res.json({
+        likeCount,
+        liked,
+        comments: comments.map(c => ({
+            id: c.id, nickname: c.nickname, profileImage: c.profile_image,
+            content: c.content, createdAt: c.created_at,
+            isMine: req.user ? c.user_id === req.user.id : false
+        }))
+    });
+});
+
+app.post('/api/social/:dataset/:address/like', authMiddleware, (req, res) => {
+    const { dataset, address } = req.params;
+    const existing = db.prepare('SELECT id FROM likes WHERE dataset=? AND address=? AND user_id=?').get(dataset, address, req.user.id);
+    if (existing) {
+        db.prepare('DELETE FROM likes WHERE id=?').run(existing.id);
+    } else {
+        db.prepare('INSERT INTO likes (dataset, address, user_id) VALUES (?, ?, ?)').run(dataset, address, req.user.id);
+    }
+    const likeCount = db.prepare('SELECT COUNT(*) as c FROM likes WHERE dataset=? AND address=?').get(dataset, address).c;
+    res.json({ liked: !existing, likeCount });
+});
+
+app.post('/api/social/:dataset/:address/comment', authMiddleware, (req, res) => {
+    const { dataset, address } = req.params;
+    const content = (req.body.content || '').trim();
+    if (!content || content.length > 500) return res.status(400).json({ error: 'invalid content' });
+
+    const result = db.prepare('INSERT INTO comments (dataset, address, user_id, nickname, profile_image, content) VALUES (?, ?, ?, ?, ?, ?)')
+        .run(dataset, address, req.user.id, req.user.nickname, req.user.profileImage || '', content);
+
+    const comment = db.prepare('SELECT id, nickname, profile_image, content, created_at FROM comments WHERE id=?').get(result.lastInsertRowid);
+    res.json({ id: comment.id, nickname: comment.nickname, profileImage: comment.profile_image, content: comment.content, createdAt: comment.created_at });
+});
+
+app.delete('/api/social/comment/:id', authMiddleware, (req, res) => {
+    const result = db.prepare('DELETE FROM comments WHERE id=? AND user_id=?').run(req.params.id, req.user.id);
+    if (result.changes === 0) return res.status(404).json({ error: 'not found' });
+    res.json({ ok: true });
+});
+
+app.get('/api/social/:dataset/counts', (req, res) => {
+    const rows = db.prepare('SELECT address, COUNT(*) as count FROM likes WHERE dataset=? GROUP BY address').all(req.params.dataset);
+    const counts = {};
+    rows.forEach(r => { counts[r.address] = r.count; });
+    res.json(counts);
 });
 
 // ── 시작 ────────────────────────────────────────────────

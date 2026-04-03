@@ -87,6 +87,7 @@ const MarkerModule = (function() {
                 <div class="units-container">
                     ${unitsHtml}
                 </div>
+                <div class="social-section" data-address="${address.replace(/"/g, '&quot;')}"></div>
             </div>
         `;
     }
@@ -113,8 +114,7 @@ const MarkerModule = (function() {
         kakao.maps.event.addListener(marker, 'click', function() {
             const content = createMultiUnitInfoWindowContent(address, properties);
             MapModule.showInfoWindow(marker, content);
-
-            // 첫 번째 호실 리스트 아이템 활성화
+            loadSocialSection(address);
             highlightListItem(firstProp.id, firstProp.unit);
         });
 
@@ -171,6 +171,19 @@ const MarkerModule = (function() {
     }
 
     /**
+     * 소셜 섹션 로드
+     */
+    function loadSocialSection(address) {
+        setTimeout(() => {
+            const el = document.querySelector('.social-section[data-address]');
+            if (el && typeof SocialModule !== 'undefined') {
+                const dataset = SettingsModule.getDatasetPath();
+                SocialModule.renderSocialSection(dataset, address, el);
+            }
+        }, 50);
+    }
+
+    /**
      * 특정 마커로 이동 (주소 기반)
      */
     function focusMarker(id, unit) {
@@ -195,6 +208,7 @@ const MarkerModule = (function() {
             const properties = addressPropertiesMap.get(targetAddress);
             const content = createMultiUnitInfoWindowContent(targetAddress, properties);
             MapModule.showInfoWindow(marker, content);
+            loadSocialSection(targetAddress);
         }
     }
 
@@ -210,6 +224,7 @@ const MarkerModule = (function() {
             const properties = addressPropertiesMap.get(address);
             const content = createMultiUnitInfoWindowContent(address, properties);
             MapModule.showInfoWindow(marker, content);
+            loadSocialSection(address);
         }
     }
 
