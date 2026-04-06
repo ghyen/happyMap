@@ -241,8 +241,7 @@ app.get('/api/social/:dataset/counts', (req, res) => {
 
 // ── PDF 파싱 (Ollama LLM 정제 → JS 데이터 생성) ──────────
 
-const PDF_SYSTEM_PROMPT = `/no_think
-당신은 공공임대주택 공고문 PDF에서 추출된 텍스트를 정제하는 정규화 도구입니다.
+const PDF_SYSTEM_PROMPT = `당신은 공공임대주택 공고문 PDF에서 추출된 텍스트를 정제하는 정규화 도구입니다.
 
 입력 텍스트에서 매물 데이터 행만 찾아서, 아래 형식으로 한 줄씩 출력하세요.
 매물이 아닌 텍스트(헤더, 안내문, 주의사항, 빈 행)는 모두 무시하세요.
@@ -262,7 +261,7 @@ const PDF_SYSTEM_PROMPT = `/no_think
 강남구|강남01|서울특별시 강남구 역삼동 123-4|303|25.39|1|O|67810000|61600`;
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen3.5:9b';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'gemma4:e4b';
 
 function parseCleanedRows(text) {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
