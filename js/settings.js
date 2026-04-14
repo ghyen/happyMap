@@ -335,7 +335,7 @@ const SettingsModule = (function() {
                 const { properties, errors } = await PdfParser.parse(file, setProgress);
 
                 if (properties.length === 0) {
-                    setProgress('테이블을 찾을 수 없습니다.', 0);
+                    setProgress('매물 데이터를 파싱할 수 없습니다. 콘솔(F12)에서 상세 로그를 확인하세요.', 0);
                     generateBtn.disabled = false;
                     return;
                 }

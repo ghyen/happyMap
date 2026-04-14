@@ -124,6 +124,10 @@ const PdfParser = (function() {
 
         const data = await res.json();
 
+        if (data.properties.length === 0 && data._debug) {
+            console.warn('LLM 응답 (파싱 실패):', data._debug);
+        }
+
         if (onProgress) onProgress(`파싱 완료: ${data.properties.length}건`, 60);
 
         return { properties: data.properties, errors: [] };
