@@ -22,15 +22,6 @@ const App = (function() {
     async function loadData(path) {
         try {
             const source = path || SettingsModule.getDatasetPath();
-
-            if (source.startsWith('idb:')) {
-                const name = source.slice(4);
-                const data = await DatasetStore.load(name);
-                if (!data) throw new Error('저장된 데이터셋을 찾을 수 없습니다.');
-                properties = data;
-                return properties;
-            }
-
             const response = await fetch(source);
             if (!response.ok) {
                 throw new Error('데이터를 불러올 수 없습니다.');

@@ -351,6 +351,64 @@ app.post('/api/parse-pdf', async (req, res) => {
     }
 });
 
+// ── 데이터셋 저장/목록 ──────────────────────────────────
+
+const DATASETS_DIR = path.join(__dirname, 'data', 'datasets');
+if (!fs.existsSync(DATASETS_DIR)) fs.mkdirSync(DATASETS_DIR, { recursive: true });
+
+function sanitizeDatasetName(raw) {
+    return path.basename(String(raw || '')).replace(/^\.+/, '').trim().slice(0, 100);
+}
+
+function timestampSuffix() {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return `_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`
+        + `_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+}
+
+app.get('/api/datasets', (req, res) => {
+    try {
+        const files = fs.readdirSync(DATASETS_DIR).filter(f => f.endsWith('.json'));
+        const list = files.map(f => {
+            const full = path.join(DATASETS_DIR, f);
+            const stat = fs.statSync(full);
+            let count = 0;
+            try {
+                const data = JSON.parse(fs.readFileSync(full, 'utf8'));
+                if (Array.isArray(data)) count = data.length;
+            } catch {}
+            return { name: f.replace(/\.json$/, ''), count, createdAt: stat.mtimeMs };
+        }).sort((a, b) => b.createdAt - a.createdAt);
+        res.json(list);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/datasets', (req, res) => {
+    const { name, properties } = req.body;
+    if (!name || !Array.isArray(properties)) {
+        return res.status(400).json({ error: 'name and properties required' });
+    }
+    const safe = sanitizeDatasetName(name);
+    if (!safe) return res.status(400).json({ error: 'invalid name' });
+
+    let finalName = safe;
+    let filepath = path.join(DATASETS_DIR, finalName + '.json');
+    if (fs.existsSync(filepath)) {
+        finalName = safe + timestampSuffix();
+        filepath = path.join(DATASETS_DIR, finalName + '.json');
+    }
+
+    try {
+        fs.writeFileSync(filepath, JSON.stringify(properties));
+        res.json({ name: finalName, count: properties.length });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ── 시작 ────────────────────────────────────────────────
 
 generateConfig();

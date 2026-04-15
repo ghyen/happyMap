@@ -360,18 +360,27 @@ const SettingsModule = (function() {
                     console.warn('지오코딩 실패 주소:', geocodeResult.failed);
                 }
 
-                // 3. IndexedDB 저장
-                setProgress('저장 중...', 97);
-                await DatasetStore.save(name, properties);
+                // 3. 서버 저장
+                setProgress('서버 저장 중...', 97);
+                const saveRes = await fetch('/api/datasets', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, properties })
+                });
+                if (!saveRes.ok) {
+                    const err = await saveRes.json().catch(() => ({}));
+                    throw new Error(err.error || '서버 저장 실패');
+                }
+                const { name: savedName } = await saveRes.json();
 
                 // 4. 드롭다운에 추가 & 선택
                 const datasetSelect = document.getElementById('dataset-select');
-                const optionValue = 'idb:' + name;
+                const optionValue = '/data/datasets/' + encodeURIComponent(savedName + '.json');
 
                 if (!datasetSelect.querySelector(`option[value="${CSS.escape(optionValue)}"]`)) {
                     const option = document.createElement('option');
                     option.value = optionValue;
-                    option.textContent = name;
+                    option.textContent = `${savedName} (${properties.length}건)`;
                     datasetSelect.appendChild(option);
                 }
                 datasetSelect.value = optionValue;
@@ -392,15 +401,21 @@ const SettingsModule = (function() {
     }
 
     async function loadSavedDatasets() {
-        const datasets = await DatasetStore.list();
-        const datasetSelect = document.getElementById('dataset-select');
+        try {
+            const res = await fetch('/api/datasets');
+            if (!res.ok) return;
+            const datasets = await res.json();
+            const datasetSelect = document.getElementById('dataset-select');
 
-        datasets.forEach(d => {
-            const option = document.createElement('option');
-            option.value = 'idb:' + d.name;
-            option.textContent = `${d.name} (${d.count}건)`;
-            datasetSelect.appendChild(option);
-        });
+            datasets.forEach(d => {
+                const option = document.createElement('option');
+                option.value = '/data/datasets/' + encodeURIComponent(d.name + '.json');
+                option.textContent = `${d.name} (${d.count}건)`;
+                datasetSelect.appendChild(option);
+            });
+        } catch (err) {
+            console.warn('데이터셋 목록 로드 실패:', err);
+        }
     }
 
     function init(onDatasetChange, getProperties, onCommuteUpdated, onConversionChange) {
