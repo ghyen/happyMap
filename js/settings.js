@@ -286,9 +286,12 @@ const SettingsModule = (function() {
         const progressFill = document.getElementById('pdf-progress-fill');
         const progressText = document.getElementById('pdf-progress-text');
 
+        const ALLOWED_EXT = ['.pdf', '.xlsx', '.xls'];
+
         function setFile(file) {
-            if (!file || !file.name.toLowerCase().endsWith('.pdf')) return;
-            // DataTransfer로 fileInput에 파일 설정
+            if (!file) return;
+            const ext = file.name.toLowerCase().match(/\.[^.]+$/)?.[0];
+            if (!ALLOWED_EXT.includes(ext)) return;
             const dt = new DataTransfer();
             dt.items.add(file);
             fileInput.files = dt.files;
@@ -296,7 +299,7 @@ const SettingsModule = (function() {
             dropZone.classList.add('has-file');
             generateBtn.disabled = false;
             if (!nameInput.value) {
-                nameInput.value = file.name.replace(/\.pdf$/i, '');
+                nameInput.value = file.name.replace(/\.[^.]+$/, '');
             }
         }
 
@@ -331,8 +334,10 @@ const SettingsModule = (function() {
             }
 
             try {
-                // 1. PDF 파싱
-                const { properties, errors } = await PdfParser.parse(file, setProgress);
+                // 1. 파일 파싱 (PDF 또는 Excel)
+                const isExcel = /\.xlsx?$/i.test(file.name);
+                const parser = isExcel ? ExcelParser : PdfParser;
+                const { properties, errors } = await parser.parse(file, setProgress);
 
                 if (properties.length === 0) {
                     setProgress('매물 데이터를 파싱할 수 없습니다. 콘솔(F12)에서 상세 로그를 확인하세요.', 0);
