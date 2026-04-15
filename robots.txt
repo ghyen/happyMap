@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://happymap.vercel.app/sitemap.xml
+Sitemap: https://happymap.duckdns.org/sitemap.xml

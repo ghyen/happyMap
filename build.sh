@@ -1,5 +1,5 @@
 #!/bin/bash
-# Vercel 빌드 시 환경변수로 config.js 생성
+# 환경변수로 config.js 생성
 cat > js/config.js << EOF
 const CONFIG = {
     KAKAO_MAP_API_KEY: "${KAKAO_MAP_API_KEY}",
