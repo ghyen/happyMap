@@ -87,7 +87,7 @@ function optionalAuth(req, res, next) {
     next();
 }
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // ── Rate Limiting ────────────────────────────────────────
 
