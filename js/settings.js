@@ -14,7 +14,13 @@ const SettingsModule = (function() {
     function loadSettings() {
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
-            return saved ? JSON.parse(saved) : {};
+            const s = saved ? JSON.parse(saved) : {};
+            // 이전 IndexedDB 참조(idb:...)는 더 이상 지원 안 함 → 제거
+            if (typeof s.dataset === 'string' && s.dataset.startsWith('idb:')) {
+                delete s.dataset;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+            }
+            return s;
         } catch { return {}; }
     }
 

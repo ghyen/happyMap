@@ -360,18 +360,6 @@ const App = (function() {
 
             properties = await loadData();
 
-            if (properties.length === 0) {
-                showLoading(false);
-                const listEl = document.getElementById('property-list');
-                listEl.innerHTML = `
-                    <li class="no-results">
-                        <p>데이터가 없습니다</p>
-                        <small>data/properties.json 파일을 확인해주세요</small>
-                    </li>
-                `;
-                return;
-            }
-
             FilterModule.setProperties(properties);
             FilterModule.initDistrictFilter();
             filteredProperties = properties;
