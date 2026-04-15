@@ -84,7 +84,35 @@ const SettingsModule = (function() {
     }
 
     /**
-     * 전체 매물의 소요시간 재계산 (고유 좌표 기준)
+     * 서버 캐시에서 좌표 쌍들의 소요시간 일괄 조회
+     */
+    async function lookupCommuteCache(dest, origins) {
+        try {
+            const res = await fetch('/api/commute/lookup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dest, origins })
+            });
+            if (!res.ok) return { cached: [], missing: origins };
+            return await res.json();
+        } catch {
+            return { cached: [], missing: origins };
+        }
+    }
+
+    async function saveCommuteCache(dest, origin, minutes) {
+        try {
+            await fetch('/api/commute/cache', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dest, origin, minutes })
+            });
+        } catch {}
+    }
+
+    /**
+     * 전체 매물 소요시간 적용: 캐시 우선, 미스는 Kakao API 호출 + 캐시 저장.
+     * onProgress(done, total, phase) — phase: 'cache' | 'fetch'
      */
     async function recalculateCommute(properties, officeLat, officeLng, onProgress) {
         const coordMap = new Map();
@@ -96,19 +124,35 @@ const SettingsModule = (function() {
                 }
             }
         });
+        if (coordMap.size === 0) return 0;
 
-        const coords = Array.from(coordMap.entries());
+        const dest = { lat: officeLat, lng: officeLng };
+        const origins = Array.from(coordMap.values());
+
+        // 1. 캐시 일괄 조회
+        const { cached, missing } = await lookupCommuteCache(dest, origins);
         const results = new Map();
-        let done = 0;
+        cached.forEach(c => results.set(coordKey(c.lat, c.lng), c.minutes));
 
-        for (const [key, { lat, lng }] of coords) {
-            const minutes = await getDriveTime(lng, lat, officeLng, officeLat);
-            results.set(key, minutes);
+        // 2. 미스 항목만 Kakao 호출 + 저장
+        let done = 0;
+        const totalFetch = missing.length;
+        if (onProgress) onProgress(done, totalFetch, cached.length);
+
+        for (const origin of missing) {
+            const minutes = await getDriveTime(origin.lng, origin.lat, officeLng, officeLat);
+            if (minutes != null) {
+                results.set(coordKey(origin.lat, origin.lng), minutes);
+                saveCommuteCache(dest, origin, minutes);
+            }
             done++;
-            if (onProgress) onProgress(done, coords.length);
-            await new Promise(r => setTimeout(r, API_DELAY_MS));
+            if (onProgress) onProgress(done, totalFetch, cached.length);
+            if (done < totalFetch) {
+                await new Promise(r => setTimeout(r, API_DELAY_MS));
+            }
         }
 
+        // 3. 매물에 적용
         let assigned = 0;
         properties.forEach(p => {
             if (p.lat && p.lng) {
@@ -119,8 +163,16 @@ const SettingsModule = (function() {
                 }
             }
         });
-
         return assigned;
+    }
+
+    /**
+     * 데이터셋 로드 후 소요시간 자동 적용 (office 설정돼 있을 때만)
+     */
+    async function autoApplyCommute(properties, onProgress) {
+        const s = loadSettings();
+        if (!s.officeLat || !s.officeLng) return 0;
+        return recalculateCommute(properties, s.officeLat, s.officeLng, onProgress);
     }
 
     /**
@@ -476,8 +528,12 @@ const SettingsModule = (function() {
             const assigned = await recalculateCommute(
                 properties,
                 coords.lat, coords.lng,
-                (done, total) => {
-                    statusEl.textContent = `소요시간 계산 중... (${done}/${total})`;
+                (done, total, cached) => {
+                    if (total === 0) {
+                        statusEl.textContent = `캐시 적용 ${cached}건`;
+                    } else {
+                        statusEl.textContent = `소요시간 계산 중... ${done}/${total}${cached ? ` · 캐시 ${cached}` : ''}`;
+                    }
                 }
             );
 
@@ -495,6 +551,7 @@ const SettingsModule = (function() {
     return {
         init,
         getDatasetPath,
-        getConvertedPrices
+        getConvertedPrices,
+        autoApplyCommute
     };
 })();

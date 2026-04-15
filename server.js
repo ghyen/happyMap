@@ -62,6 +62,13 @@ db.exec(`
         content TEXT NOT NULL,
         created_at TEXT DEFAULT (datetime('now'))
     );
+    CREATE TABLE IF NOT EXISTS commute_cache (
+        origin_key TEXT NOT NULL,
+        dest_key TEXT NOT NULL,
+        minutes INTEGER NOT NULL,
+        created_at TEXT DEFAULT (datetime('now')),
+        PRIMARY KEY (origin_key, dest_key)
+    );
     CREATE INDEX IF NOT EXISTS idx_likes_lookup ON likes(dataset, address);
     CREATE INDEX IF NOT EXISTS idx_comments_lookup ON comments(dataset, address);
 `);
@@ -349,6 +356,41 @@ app.post('/api/parse-pdf', async (req, res) => {
         console.error('PDF parse error:', err);
         res.status(500).json({ error: 'LLM 파싱 실패: ' + err.message });
     }
+});
+
+// ── 소요시간 캐시 ──────────────────────────────────────
+
+function coordKey(lat, lng) {
+    return `${Number(lat).toFixed(5)},${Number(lng).toFixed(5)}`;
+}
+
+app.post('/api/commute/lookup', (req, res) => {
+    const { dest, origins } = req.body;
+    if (!dest || !Array.isArray(origins)) {
+        return res.status(400).json({ error: 'dest and origins required' });
+    }
+    const destKey = coordKey(dest.lat, dest.lng);
+    const stmt = db.prepare('SELECT minutes FROM commute_cache WHERE origin_key=? AND dest_key=?');
+
+    const cached = [];
+    const missing = [];
+    for (const o of origins) {
+        if (o?.lat == null || o?.lng == null) continue;
+        const row = stmt.get(coordKey(o.lat, o.lng), destKey);
+        if (row) cached.push({ lat: o.lat, lng: o.lng, minutes: row.minutes });
+        else missing.push({ lat: o.lat, lng: o.lng });
+    }
+    res.json({ cached, missing });
+});
+
+app.post('/api/commute/cache', (req, res) => {
+    const { dest, origin, minutes } = req.body;
+    if (!dest || !origin || typeof minutes !== 'number') {
+        return res.status(400).json({ error: 'dest, origin, minutes required' });
+    }
+    db.prepare('INSERT OR REPLACE INTO commute_cache (origin_key, dest_key, minutes) VALUES (?, ?, ?)')
+        .run(coordKey(origin.lat, origin.lng), coordKey(dest.lat, dest.lng), minutes);
+    res.json({ ok: true });
 });
 
 // ── 데이터셋 저장/목록 ──────────────────────────────────

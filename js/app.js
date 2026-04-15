@@ -350,6 +350,28 @@ const App = (function() {
         }
     }
 
+    function showCommuteModal(text) {
+        const el = document.getElementById('commute-modal');
+        document.getElementById('commute-modal-text').textContent = text;
+        el.hidden = false;
+    }
+    function hideCommuteModal() {
+        document.getElementById('commute-modal').hidden = true;
+    }
+
+    async function applyCommuteToCurrent() {
+        if (properties.length === 0) return;
+        const assigned = await SettingsModule.autoApplyCommute(properties, (done, total, cachedCount) => {
+            if (total === 0) {
+                if (cachedCount > 0) showCommuteModal(`캐시 적용 ${cachedCount}건`);
+            } else {
+                showCommuteModal(`소요시간 계산 중... ${done}/${total}${cachedCount ? ` · 캐시 ${cachedCount}` : ''}`);
+            }
+        });
+        hideCommuteModal();
+        if (assigned > 0) updateView(false);
+    }
+
     /**
      * 앱 초기화
      */
@@ -385,6 +407,7 @@ const App = (function() {
                     if (m.length > 0) MapModule.fitBounds(m);
                     showLoading(false);
                     showToast(`${properties.length}건 로드 완료`);
+                    applyCommuteToCurrent();
                 },
                 () => properties,
                 () => {
@@ -400,6 +423,7 @@ const App = (function() {
 
             setMobileView('list');
             showLoading(false);
+            applyCommuteToCurrent();
         } catch (error) {
             console.error('앱 초기화 실패:', error);
             showLoading(false);
